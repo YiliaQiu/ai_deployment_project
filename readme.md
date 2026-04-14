@@ -29,3 +29,10 @@ python main.py
 docker build -t cnn_deploy .
 docker run -p 8000:8000 cnn_deploy
  ```
+
+Using C++ to infer:
+```bash
+brew install onnxruntime
+g++ infer.cpp -o infer -lonnxruntime
+./infer
+```

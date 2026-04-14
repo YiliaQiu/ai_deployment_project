@@ -1,5 +1,18 @@
+# 忽略 Unix/Linux 可执行文件 (无后缀)
+# 匹配所有 无扩展名、有可执行权限 的文件
+*
+!*/
+!*.*
+
+*.out
+*.o
+*.so
+.DS_Store
+__pycache__/
+
 *.onnx
 *.data
 *.idea
 *.pyc
 *.png
+onnxruntime-osx-arm64-1.19.2
