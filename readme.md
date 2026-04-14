@@ -32,7 +32,12 @@ docker run -p 8000:8000 cnn_deploy
 
 Using C++ to infer:
 ```bash
-brew install onnxruntime
-g++ infer.cpp -o infer -lonnxruntime
+g++ -o infer infer.cpp \
+-I./onnxruntime-osx-arm64-1.19.2/include \
+-L./onnxruntime-osx-arm64-1.19.2/lib \
+-lonnxruntime
+
+export DYLD_LIBRARY_PATH=./onnxruntime-osx-arm64-1.19.2/lib
 ./infer
+
 ```
