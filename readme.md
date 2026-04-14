@@ -1,0 +1,31 @@
+This is a project for **practicng AI deployment** which contains 
+- a) PyTorch Model Training & Inference
+- b) ONNX Model Export & optimization
+- c) Usage of ONNX Runtime Inference Engine
+- d) FastAPI Model Serving
+- e) Docker Containerized Deployment
+- f) Linux Environment Deployment & Debugging
+- g) End-to-End AI Engineering Implementation
+
+Steps are as follows:
+- 1. add requirements -> requirements.txt
+- 2. Train a CNN and export it to ONNX, run train.py as follows:
+```bash
+python train.py
+  ```
+- 3. ONNX Runtime inference, run infer_onnx.py as follows:
+```bash
+python infer_onnx.py 
+```
+
+- 4. FastAPI online service, run main.py as follows:
+    - mainPage: http://localhost:8000
+    - predict: http://localhost:8000/predict
+```bash
+python main.py
+```
+- 5. Containerized deployment, run dockerfile as follows:
+ ```bash
+docker build -t cnn_deploy .
+docker run -p 8000:8000 cnn_deploy
+ ```
