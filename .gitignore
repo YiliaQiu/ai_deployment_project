@@ -15,4 +15,5 @@ __pycache__/
 *.idea
 *.pyc
 *.png
+*.pt
 onnxruntime-osx-arm64-1.19.2
