@@ -41,3 +41,7 @@ export DYLD_LIBRARY_PATH=./onnxruntime-osx-arm64-1.19.2/lib
 ./infer
 
 ```
+
+## other tools
+- TensorRT: only useful for linux+nvidia GPU
+- OpenVINO: useful for intel CPU/CPU
