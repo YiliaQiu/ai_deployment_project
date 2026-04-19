@@ -45,3 +45,4 @@ export DYLD_LIBRARY_PATH=./onnxruntime-osx-arm64-1.19.2/lib
 ## other tools
 - TensorRT: only useful for linux+nvidia GPU
 - OpenVINO: useful for intel CPU/CPU
+- triton: need to install docker
