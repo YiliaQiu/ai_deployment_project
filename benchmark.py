@@ -17,74 +17,78 @@ class CNN(nn.Module):
         x = self.fc1(x)
         return x
 
-model = CNN()
-torch.save(model, "cnn_mnist_nodel.pt") # 用于对比效率
+cnnmodel = CNN()
+torch.save(cnnmodel, "cnn_mnist_nodel.pt") # 用于对比效率
 print("✅ 已保存：cnn_mnist_model.pt")
 
-def run_benchmark():
+def load_model():
+    model = torch.load("cnn_mnist_nodel.pt", map_location="cpu", weights_only=False)
+    model.eval()
+    return model
+
+# macos不支持 PyTorch 原生 INT8 量化（会报错 NoQEngine）
+# def quantize_model(model):
+#     model_quant = torch.quantization.quantize_dynamic(
+#         model,
+#         {nn.Linear, nn.Conv2d}, # 量化卷积层和全连接层
+#         dtype = torch.qint8
+#     )
+#     return model_quant
+
+def run_benchmark(model, model_type = "pytorch"):
     dummy_input = np.random.randn(1, 1, 28, 28).astype(np.float32)
     torch_input = torch.from_numpy(dummy_input)
 
-    print("=" * 50)
-    print("开始测试：原始Pytorch推理1000次(start inference: using Pytorch for 1000 times)")
-    model = torch.load("cnn_mnist_nodel.pt", map_location = "cpu", weights_only=False)
-    model.eval()
-
-    # 预热，避免第一个加载耗时干扰
-    with torch.no_grad():
-        model(torch_input)
-
-    start = time.time()
-    for _ in range(1000):
-        with torch.no_grad():
-              model(torch_input)
-    torch_total_time = time.time() - start
-    torch_avg_time = torch_total_time / 1000
-
-    print(f"PyTorch总耗时: {torch_total_time:.4f}秒")
-    print(f"PyTorch平均每次耗时: {torch_avg_time:.5f}秒")
-
-    #--------------------#
-    ort_session = ort.InferenceSession("cnn_mnist.onnx")
-    # 预热
-    ort_session.run(["pred_output"], {"image_input": dummy_input})
-
-    start = time.time()
-    for _ in range(1000):
-        ort_session.run(["pred_output"], {"image_input": dummy_input})
-    ort_total_time = time.time() - start
-    ort_avg_time = ort_total_time / 1000
-
-    print(f"ort总耗时: {ort_total_time:.4f}秒")
-    print(f"ort平均每次耗时: {ort_avg_time:.4f}秒")
-
-    print("\n" + "=" * 50)
-    print("🔥 最终对比 🔥")
-    print(f"PyTorch  平均：{torch_avg_time:.4f} s/次")
-    print(f"ONNX Runtime 平均：{ort_avg_time:.5f} s/次")
-
-    if ort_avg_time < torch_avg_time:
-        faster = (torch_avg_time - ort_avg_time) / torch_avg_time * 100
-        print(f"✅ ONNX Runtime 更快，加速比：{faster:.1f}%")
+    if model_type == "onnx":
+        model.run(["pred_output"], {"image_input": dummy_input})
     else:
-        faster = (ort_avg_time - torch_avg_time) / ort_avg_time * 100
-        print(f"✅ PyTorch 更快，加速比：{faster:.1f}%")
+        with torch.no_grad():
+            model(torch_input)
 
-
+    start = time.time()
+    for _ in range(1000):
+        if model_type == "onnx":
+            model.run(["pred_output"], {"image_input": dummy_input})
+        else:
+            with torch.no_grad():
+                model(torch_input)
+    total_time = time.time() - start
+    avg_time = total_time / 1000
+    return total_time, avg_time
 
 if __name__ == "__main__":
-    run_benchmark()
+
+
+    print("=" * 50)
+    print("模型量化 + 推理性能基础测试")
+    print("\n" + "=" * 50)
+
+    model = load_model()
+    # model_quant = quantize_model(model)
+    ort_session = ort.InferenceSession("cnn_mnist.onnx")
+
+    t1, a1 = run_benchmark(model, model_type = "pytorch")
+    # t2, a2 = run_benchmark(model_quant, model_type = "pytorch")
+    t3, a3 = run_benchmark(ort_session, model_type = "onnx")
+
+    print("\n📊 最终性能对比（1000次推理）")
+    print(f"原生PyTorch：总耗时 {t1:.3f}s  平均 {a1:.4f}s")
+    # print(f"量化PyTorch：总耗时 {t2:.3f}s  平均 {a2:.4f}s")
+    print(f"ONNX Runtime：总耗时 {t3:.3f}s  平均 {a3:.4f}s")
+
+    speed_up = (a1 - a3) / a1 * 100
+    print(f"\n✅ ONNX 平均耗时降低：{speed_up:.1f}%")
+
     # 结果如下：
     '''
-    开始测试：原始Pytorch推理1000次(start inference: using Pytorch for 1000 times)
-    PyTorch总耗时: 0.0869秒
-    PyTorch平均每次耗时: 0.00009秒
-    ort总耗时: 0.0205秒
-    ort平均每次耗时: 0.0000秒
+    ==================================================
+    模型量化 + 推理性能基础测试
     
     ==================================================
-    🔥 最终对比 🔥
-    PyTorch  平均：0.0001 s/次
-    ONNX Runtime 平均：0.00002 s/次
-    ✅ ONNX Runtime 更快，加速比：76.4%
+    
+    📊 最终性能对比（1000次推理）
+    原生PyTorch：总耗时 0.095s  平均 0.0001s
+    ONNX Runtime：总耗时 0.020s  平均 0.0000s
+    
+    ✅ ONNX 平均耗时降低：78.6%
     '''
